@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AT機風スロット - LUCK RUSH</title>
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --panel-bg: #131c31;
+            --normal-color: #38bdf8;
+            --at-color: #ec4899;
+            --text-color: #f8fafc;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, var(--bg-color), #020617);
+            color: var(--text-color);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            transition: background 0.5s ease;
+        }
+
+        .container {
+            background: var(--panel-bg);
+            border: 4px solid #334155;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            text-align: center;
+            max-width: 420px;
+            width: 90%;
+            transition: border-color 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        /* AT発動中の演出用クラス */
+        .container.at-mode {
+            border-color: var(--at-color);
+            box-shadow: 0 0 25px rgba(236, 72, 153, 0.6), inset 0 0 15px rgba(236, 72, 153, 0.2);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.6rem;
+            color: var(--normal-color);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
+            transition: color 0.5s ease;
+        }
+        .container.at-mode h1 {
+            color: var(--at-color);
+            text-shadow: 0 0 10px var(--at-color);
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: #1e293b;
+            color: var(--normal-color);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border: 1px solid currentColor;
+            letter-spacing: 1px;
+        }
+        .container.at-mode .status-badge {
+            color: var(--at-color);
+            background: rgba(236, 72, 153, 0.1);
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: #090d16;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            border: 1px solid #334155;
+            text-align: left;
+        }
+
+        .stat-item span {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .slot-machine {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            background: #000;
+            padding: 12px;
+            border-radius: 12px;
+            border: 3px inset #475569;
+            margin-bottom: 15px;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.8);
+        }
+
+        .reel {
+            width: 75px;
+            height: 90px;
+            background: #ffffff;
+            color: #000;
+            font-size: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 4px 6px rgba(0,0,0,0.4);
+        }
+
+        .reel-inner {
+            position: absolute;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .symbol {
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #fff;
+            border: none;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4);
+            transition: all 0.2s ease;
+            width: 100%;
+            letter-spacing: 1px;
+        }
+        .container.at-mode .btn {
+            background: linear-gradient(135deg, #ec4899, #be185d);
+            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.5);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        .btn:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+        .btn:disabled {
+            background: #334155;
+            color: #64748b;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .message {
+            margin-top: 12px;
+            font-size: 1rem;
+            min-height: 1.5rem;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+        .container.at-mode .message {
+            color: #f472b6;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="container">
+        <h1>LUCK RUSH</h1>
+        <div class="status-badge" id="statusBadge">NORMAL MODE</div>
+        
+        <div class="stats">
+            <div class="stat-item">所持金: <span id="coins">1000</span>G</div>
+            <div class="stat-item">BET: <span id="bet">50</span>G</div>
+            <div class="stat-item" id="atStatusContainer" style="grid-column: span 2; display: none;">
+                AT残りG数: <span id="atGames">0</span>G / 獲得: <span id="atBonusCoins">0</span>枚
+            </div>
+        </div>
+
+        <div class="slot-machine">
+            <div class="reel"><div class="reel-inner" id="inner0"><div class="symbol">🍒</div></div></div>
+            <div class="reel"><div class="reel-inner" id="inner1"><div class="symbol">🍋</div></div></div>
+            <div class="reel"><div class="reel-inner" id="inner2"><div class="symbol"> 7 </div></div></div>
+        </div>
+
+        <button class="btn" id="spinBtn" onclick="spin()">SPIN (BET 50G)</button>
+        <div class="message" id="message">レバーを叩いてATを目指せ！</div>
+    </div>
+
+    <script>
+        const symbols = ['🍒', '🍋', '🍇', '🔔', ' 7 '];
+        
+        let coins = 1000;
+        const betAmount = 50;
+        let isSpinning = false;
+
+        // AT（ラッシュ）関連の状態
+        let inAT = false;
+        let atGames = 0;
+        let atBonusCoins = 0;
+
+        const containerEl = document.getElementById('container');
+        const statusBadge = document.getElementById('statusBadge');
+        const coinsEl = document.getElementById('coins');
+        const messageEl = document.getElementById('message');
+        const spinBtn = document.getElementById('spinBtn');
+        const atStatusContainer = document.getElementById('atStatusContainer');
+        const atGamesEl = document.getElementById('atGames');
+        const atBonusCoinsEl = document.getElementById('atBonusCoins');
+
+        function spin() {
+            if (isSpinning) return;
+
+            // AT中ならコインは減らさず、ATゲーム数を消化
+            if (inAT) {
+                atGames--;
+                if (atGames <= 0) {
+                    endAT();
+                    return;
+                }
+            } else {
+                if (coins < betAmount) {
+                    messageEl.textContent = "所持金が足りません！";
+                    return;
+                }
+                coins -= betAmount;
+                coinsEl.textContent = coins;
+            }
+
+            isSpinning = true;
+            spinBtn.disabled = true;
+            messageEl.textContent = inAT ? "AT消化中..." : "スピン中...";
+            updateDisplay();
+
+            const results = [];
+            let completed = 0;
+
+            for (let i = 0; i < 3; i++) {
+                const inner = document.getElementById(`inner${i}`);
+                const duration = 800 + i * 400;
+                const startTime = Date.now();
+
+                function animate() {
+                    const elapsed = Date.now() - startTime;
+                    const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+                    inner.innerHTML = `<div class="symbol">${randomSymbol}</div>`;
+
+                    if (elapsed < duration) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        // 出現率の重み付け（AT中は 7 や レア役が出やすい演出）
+                        let finalSymbol;
+                        if (inAT && Math.random() < 0.35) {
+                            finalSymbol = ' 7 '; // AT中は高確率で7揃いなどのチャンス
+                        } else if (!inAT && Math.random() < 0.08) {
+                            finalSymbol = ' 7 '; // 通常時は約8%で7が選ばれる（AT直撃抽選）
+                        } else {
+                            finalSymbol = symbols[Math.floor(Math.random() * (symbols.length - 1))];
+                        }
+
+                        inner.innerHTML = `<div class="symbol">${finalSymbol}</div>`;
+                        results[i] = finalSymbol;
+                        completed++;
+
+                        if (completed === 3) {
+                            checkWin(results);
+                        }
+                    }
+                }
+                animate();
+            }
+        }
+
+        function checkWin(results) {
+            isSpinning = false;
+            spinBtn.disabled = false;
+
+            const isThreeOfAKind = (results[0] === results[1] && results[1] === results[2]);
+            const isSeven = isThreeOfAKind && results[0] === ' 7 ';
+            const isCherry = results.includes('🍒');
+
+            if (inAT) {
+                // --- AT中の抽選 ---
+                if (isSeven) {
+                    const addG = 30; // 7揃いで30ゲーム上乗せ
+                    atGames += addG;
+                    messageEl.textContent = `🔥 7揃い！ ゲーム数 +${addG}G 上乗せ！ 🔥`;
+                } else if (isThreeOfAKind) {
+                    const addCoin = 150;
+                    coins += addCoin;
+                    atBonusCoins += addCoin;
+                    messageEl.textContent = `🎯 役揃い！ 払い出し +${addCoin}G 🎯`;
+                } else if (isCherry) {
+                    const addG = 10;
+                    atGames += addG;
+                    messageEl.textContent = `🍒 チェリー！ ゲーム数 +${addG}G 上乗せ！ 🍒`;
+                } else {
+                    messageEl.textContent = "AT消化中... (ハズレ)";
+                }
+            } else {
+                // --- 通常時の抽選 ---
+                if (isSeven) {
+                    startAT();
+                    messageEl.textContent = `🚀 7揃い達成！ AT「LUCK RUSH」突入！ 🚀`;
+                } else if (isThreeOfAKind) {
+                    const winCoin = 200;
+                    coins += winCoin;
+                    messageEl.textContent = `✨ ボーナス！ +${winCoin}G ✨`;
+                } else if (isCherry) {
+                    const winCoin = 40;
+                    coins += winCoin;
+                    messageEl.textContent = `🍒 小役揃い！ +${winCoin}G 🍒`;
+                } else {
+                    messageEl.textContent = "ハズレ…7を狙え！";
+                }
+            }
+
+            coinsEl.textContent = coins;
+            updateDisplay();
+        }
+
+        function startAT() {
+            inAT = true;
+            atGames = 20; // 初期ATゲーム数 20G
+            atBonusCoins = 0;
+            containerEl.classList.add('at-mode');
+            statusBadge.textContent = "🔥 LUCK RUSH (AT) 🔥";
+            atStatusContainer.style.display = "block";
+            spinBtn.textContent = "AT消化 (BET不要)";
+        }
+
+        function endAT() {
+            inAT = false;
+            containerEl.classList.remove('at-mode');
+            statusBadge.textContent = "NORMAL MODE";
+            atStatusContainer.style.display = "none";
+            spinBtn.textContent = "SPIN (BET 50G)";
+            messageEl.textContent = `AT終了！ 獲得枚数: ${atBonusCoins}G`;
+            coinsEl.textContent = coins;
+        }
+
+        function updateDisplay() {
+            if (inAT) {
+                atGamesEl.textContent = atGames;
+                atBonusCoinsEl.textContent = atBonusCoins;
+            }
+        }
+    </script>
+</body>
+</html>
